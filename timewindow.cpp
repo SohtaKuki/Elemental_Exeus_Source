@@ -5,14 +5,16 @@
 //
 //=================================================
 
-#include "bossui.h"
+#include "timewindow.h"
 #include "manager.h"
 #include "3dboss.h"
+#include "bosscallui.h"
+#include "3dgoalobj.h"
 
 //======================
 // コンストラクタ
 //======================
-CBossui::CBossui(int nPriority) : CObject2D(nPriority)
+CTimeWindow::CTimeWindow(int nPriority) : CObject2D(nPriority)
 {
 
 }
@@ -20,7 +22,7 @@ CBossui::CBossui(int nPriority) : CObject2D(nPriority)
 //======================
 // デストラクタ
 //======================
-CBossui::~CBossui()
+CTimeWindow::~CTimeWindow()
 {
 
 }
@@ -28,7 +30,7 @@ CBossui::~CBossui()
 //======================
 // 初期化処理
 //======================
-HRESULT CBossui::Init()
+HRESULT CTimeWindow::Init()
 {
 	CObject2D::Init();
 
@@ -69,7 +71,7 @@ HRESULT CBossui::Init()
 //======================
 // 終了処理
 //======================
-void CBossui::Uninit()
+void CTimeWindow::Uninit()
 {
 	CObject2D::Uninit();
 }
@@ -77,50 +79,47 @@ void CBossui::Uninit()
 //======================
 // 更新処理
 //======================
-void CBossui::Update()
-{   
-	//ゲームが進行可能の時のみ通す
-	if (CScene::GetUpdateStat() == true)
+void CTimeWindow::Update()
+{
+	VERTEX_2D* pVtx;
+
+	//頂点バッファをロックし、頂点情報へのポインタを取得
+	CObject2D::GetBuff()->Lock(0, 0, (void**)&pVtx, 0);
+
+	if (CBossCallUI::GetEndStat() == true && C3dboss::GetBossEntry() == true && C3dgoalobj::GetStageNum() == 2 ||
+		CBossCallUI::GetEndStat() == false && C3dboss::GetBossEntry() == false && C3dgoalobj::GetStageNum() == 2
+		|| C3dgoalobj::GetStageNum() == 0 || C3dgoalobj::GetStageNum() == 1)
 	{
-		VERTEX_2D* pVtx;
-
-
-		//頂点バッファをロックし、頂点情報へのポインタを取得
-		CObject2D::GetBuff()->Lock(0, 0, (void**)&pVtx, 0);
-
-		if (C3dboss::GetBossEntry() == true)
-		{
-			pVtx[0].pos = D3DXVECTOR3(m_nPos.x - m_nSize.x, m_nPos.y, 0.0f);
-			pVtx[1].pos = D3DXVECTOR3(m_nPos.x + m_nSize.x, m_nPos.y, 0.0f);
-			pVtx[2].pos = D3DXVECTOR3(m_nPos.x - m_nSize.x, m_nPos.y + m_nSize.y, 0.0f);
-			pVtx[3].pos = D3DXVECTOR3(m_nPos.x + m_nSize.x, m_nPos.y + m_nSize.y, 0.0f);
-		}
-
-		if (C3dboss::GetBossEntry() == false || C3dboss::GetBossDeathState() == true)
-		{
-			for (int nCnt = 0; nCnt < 4; nCnt++)
-			{
-				pVtx[nCnt].pos = D3DXVECTOR3(0.0f, 0.0f, 0.0f);
-			}
-		}
-
-		CObject2D::GetBuff()->Unlock();
-
+		//頂点座標の設定
+		pVtx[0].pos = D3DXVECTOR3(m_nPos.x - m_nSize.x, m_nPos.y, 0.0f);
+		pVtx[1].pos = D3DXVECTOR3(m_nPos.x + m_nSize.x, m_nPos.y, 0.0f);
+		pVtx[2].pos = D3DXVECTOR3(m_nPos.x - m_nSize.x, m_nPos.y + m_nSize.y, 0.0f);
+		pVtx[3].pos = D3DXVECTOR3(m_nPos.x + m_nSize.x, m_nPos.y + m_nSize.y, 0.0f);
 	}
+
+	if (CBossCallUI::GetEndStat() == true && C3dboss::GetBossEntry() == false && C3dgoalobj::GetStageNum() == 2)
+	{
+		//頂点座標の更新
+		for (int nCnt = 0; nCnt < 4; nCnt++)
+		{
+			pVtx[nCnt].pos = D3DXVECTOR3(0.0f, 0.0f, 0.0f);
+		}
+	}
+
+	CObject2D::GetBuff()->Unlock();
 
 	int nFadeState = CFade::GetFadeState();
 
 	if (nFadeState == CFade::FADE_OUT)
 	{
-		CBossui::Uninit();
-		return;
+		CTimeWindow::Uninit();
 	}
 }
 
 //======================
 // 描画処理
 //======================
-void CBossui::Draw()
+void CTimeWindow::Draw()
 {
 	CObject2D::Draw();
 }
@@ -128,22 +127,22 @@ void CBossui::Draw()
 //======================
 // オブジェクト生成処理
 //======================
-CBossui* CBossui::Create(D3DXVECTOR3 pos, D3DXVECTOR3 size)
+CTimeWindow* CTimeWindow::Create(D3DXVECTOR3 pos, D3DXVECTOR3 size)
 {
-	CBossui* Bossui = new CBossui;
+	CTimeWindow* TimeWindow = new CTimeWindow;
 
-	Bossui->m_nPos = pos;
+	TimeWindow->m_nPos = pos;
 
-	Bossui->m_nSize = size;
+	TimeWindow->m_nSize = size;
 
-	Bossui->Init();
+	TimeWindow->Init();
 
 	LPDIRECT3DTEXTURE9 pTexture;
 
 	//テクスチャの読み込み
-	D3DXCreateTextureFromFile(CManager::GetRenderer()->GetDevice(), "data\\TEXTURE\\bossui000.png", &pTexture);
+	D3DXCreateTextureFromFile(CManager::GetRenderer()->GetDevice(), "data\\TEXTURE\\time_window.png", &pTexture);
 
-	Bossui->BindTexture(pTexture);
+	TimeWindow->BindTexture(pTexture);
 
-	return Bossui;
+	return TimeWindow;
 }
